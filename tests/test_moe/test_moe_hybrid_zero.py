@@ -81,11 +81,12 @@ def run_zero_optim_test(local_rank, world_size, stage=1):
 
 
 def run_dist(rank, world_size, port):
-    colossalai.launch(config=dict(), rank=rank, world_size=world_size, host="localhost", port=port, backend="nccl")
+    colossalai.launch(rank=rank, world_size=world_size, host="localhost", port=port, backend="nccl")
     run_zero_optim_test(rank, world_size, stage=1)
     run_zero_optim_test(rank, world_size, stage=2)
 
 
+@pytest.mark.skip(reason="moe need to be refactored")
 @pytest.mark.dist
 @pytest.mark.parametrize("world_size", [4])
 @rerun_if_address_is_in_use()

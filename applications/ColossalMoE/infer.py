@@ -2,8 +2,6 @@ import argparse
 
 import torch
 import torch.distributed as dist
-from colossal_moe.models.mixtral_checkpoint import MixtralMoEHybridParallelCheckpointIO
-from colossal_moe.models.mixtral_policy import MixtralForCausalLMPolicy
 from transformers import AutoTokenizer
 from transformers.models.mixtral import MixtralConfig, MixtralForCausalLM
 
@@ -57,7 +55,7 @@ def main():
     args = parse_args()
 
     # Launch ColossalAI
-    colossalai.launch_from_torch(config={}, seed=args.seed)
+    colossalai.launch_from_torch(seed=args.seed)
     coordinator = DistCoordinator()
 
     config = MixtralConfig.from_pretrained(args.model_name)
@@ -70,8 +68,6 @@ def main():
             ep_size=ep_size,
             zero_stage=1,
             precision=args.precision,
-            custom_policy=MixtralForCausalLMPolicy(),
-            checkpoint_io=MixtralMoEHybridParallelCheckpointIO,
             enable_fused_normalization=args.use_layernorm_kernel,
             enable_jit_fused=args.use_kernel,
         )
@@ -96,7 +92,11 @@ def main():
     if coordinator.rank == 0:
         text = ["Hello my name is"]
     else:
-        text = ["What's the largest country in the world?", "How many people live in China?", "帮我续写这首诗：离离原上草"]
+        text = [
+            "What's the largest country in the world?",
+            "How many people live in China?",
+            "帮我续写这首诗：离离原上草",
+        ]
     tokenizer.pad_token = tokenizer.unk_token
     inputs = tokenizer(text, return_tensors="pt", padding=True).to(torch.cuda.current_device())
 
@@ -104,7 +104,6 @@ def main():
         outputs = model.module.generate(**inputs, max_new_tokens=20)
     outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
     print(f"[{coordinator.rank}] {outputs}")
-
 
 
 if __name__ == "__main__":

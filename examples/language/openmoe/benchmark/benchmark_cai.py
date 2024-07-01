@@ -146,7 +146,7 @@ def main():
     args = parse_args()
 
     # Launch ColossalAI
-    colossalai.launch_from_torch(config={}, seed=args.seed)
+    colossalai.launch_from_torch(seed=args.seed)
     coordinator = DistCoordinator()
 
     # Set plugin
@@ -176,7 +176,7 @@ def main():
         use_ep_inside = False
         plugin = MoeHybridParallelPlugin(
             pp_size=1,
-            extra_dp_size=args.extra_dp_size,
+            ep_size=args.ep_size,
             use_ep_inside=use_ep_inside,
             **hybrid_dict,
         )
@@ -270,7 +270,6 @@ def main():
                     lambda x, y: x.loss,
                     optimizer,
                     return_loss=True,
-                    return_outputs=True,
                 )
                 # Backward and optimize
                 if is_pp_last_stage:

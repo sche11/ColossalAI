@@ -35,11 +35,24 @@ from transformers.utils import (
     replace_return_docstrings,
 )
 
-from colossalai.kernel.extensions.flash_attention import HAS_FLASH_ATTN
+try:
+    # TODO: remove this after updating openmoe example
+    # NOTE(yuanheng-zhao): This is a temporary fix for the issue that
+    # the flash_attention module is not imported correctly for different CI tests.
+    # We replace the import path `colossalai.kernel.extensions.flash_attention`
+    # because in the current example test, colossalai version <= 0.3.6 is installed,
+    # where `colossalai.kernel.extensions.flash_attention` is still valid;
+    # however in unit test `test_moe_checkpoint`, the lastest version of colossalai is installed,
+    # where extension has been refactored and the path is not valid.
+    import flash_attention  # noqa
+
+    HAS_FLASH_ATTN = True
+except:
+    HAS_FLASH_ATTN = False
 from colossalai.kernel.triton.llama_act_combine_kernel import HAS_TRITON
-from colossalai.moe.layers import SparseMLP
 from colossalai.moe.manager import MOE_MANAGER
 from colossalai.moe.utils import get_activation, set_moe_args
+from colossalai.shardformer.layer.moe import SparseMLP
 
 if HAS_TRITON:
     from colossalai.kernel.triton.llama_act_combine_kernel import LlamaActCombine
@@ -70,7 +83,7 @@ def set_openmoe_args(
     load_balance_group_swap_factor: float = 0.4,
     enable_kernel: bool = False,
     enable_comm_overlap: bool = False,
-    enable_hierarchical_alltoall: bool = False,
+    enable_hierarchical_alltoall: bool = True,
 ) -> None:
     """
     MoE related arguments.
@@ -96,7 +109,7 @@ def set_openmoe_args(
         load_balance_beam_width (int, optional): Expert load balance search's beam width. Defaults to 8.
         load_balance_group_swap_factor (float, optional): Expert load balance group swap factor. Longer value encourages less swap. Defaults to 0.4.
         enable_kernel (bool, optional): Use kernel optimization. Defaults to False.
-        enable_comm_overlap (bool, optional): Use communication overlap for MoE. Recommended to enable for muiti-node training. Defaults to False.
+        enable_comm_overlap (bool, optional): Use communication overlap for MoE. Recommended to enable for multi-node training. Defaults to False.
         enable_hierarchical_alltoall (bool, optional): Use hierarchical alltoall for MoE. Defaults to False.
     """
     moe_args = dict(
@@ -452,7 +465,7 @@ class OpenMoeDecoderLayer(nn.Module):
                 load_balance_beam_width=config.load_balance_beam_width,
                 load_balance_group_swap_factor=config.load_balance_group_swap_factor,
                 enable_kernel=config.enable_kernel,
-                enable_comm_overlap=config.enable_comm_overlap,
+                enable_hierarchical_comm=config.enable_hierarchical_alltoall,
             )
             self.pre_extra_mlp_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
             self.extra_mlp = OpenMoeMLP(config)
@@ -890,7 +903,7 @@ class OpenMoeForCausalLM(OpenMoePreTrainedModel):
         "Hey, are you conscious? Can you talk to me?\nI'm not conscious, but I can talk to you."
         ```"""
         # reset moe loss
-        MOE_MANAGER.reset_loss()
+        MOE_MANAGER.reset_loss()  # TODO: remove
 
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
@@ -1014,7 +1027,7 @@ class OpenMoeForCausalLM(OpenMoePreTrainedModel):
 
     def _calculate_router_loss(self, aux_loss: list = None, z_loss: list = None):
         if aux_loss is None or z_loss is None:
-            aux_loss, z_loss = MOE_MANAGER.get_loss()
+            aux_loss, z_loss = MOE_MANAGER.get_loss()  # TODO: remove
         assert len(aux_loss) == len(z_loss) == self.config.num_hidden_layers // self.config.moe_layer_interval
         aux_loss = self.config.router_aux_loss_factor * sum(aux_loss) / len(aux_loss)
         z_loss = self.config.router_z_loss_factor * sum(z_loss) / len(z_loss)

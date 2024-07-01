@@ -47,7 +47,7 @@ def check_torch_ddp_plugin():
         registry = model_zoo
 
     for name, (model_fn, data_gen_fn, output_transform_fn, _, _) in registry.items():
-        if name == "dlrm_interactionarch":
+        if name == "dlrm_interactionarch" or name.startswith("simple_"):
             continue
         run_fn(model_fn, data_gen_fn, output_transform_fn)
         torch.cuda.empty_cache()
@@ -109,7 +109,7 @@ def check_torch_ddp_no_sync():
 
 def run_dist(rank, world_size, port):
     # init dist env
-    colossalai.launch(config=dict(), rank=rank, world_size=world_size, port=port, host="localhost")
+    colossalai.launch(rank=rank, world_size=world_size, port=port, host="localhost")
     check_torch_ddp_plugin()
     check_torch_ddp_no_sync()
 

@@ -2,20 +2,15 @@
 # -*- encoding: utf-8 -*-
 
 import os
-import warnings
-from pathlib import Path
-from typing import Dict, Union
 
 import torch.distributed as dist
 
 from colossalai.accelerator import get_accelerator
-from colossalai.context import Config
 from colossalai.logging import get_dist_logger
 from colossalai.utils import set_seed
 
 
 def launch(
-    config: Union[str, Path, Config, Dict],
     rank: int,
     world_size: int,
     host: str,
@@ -44,15 +39,16 @@ def launch(
     Raises:
         Exception: Raise exception when config type is wrong
     """
-    if rank == 0:
-        warnings.warn("`config` is deprecated and will be removed soon.")
 
     cur_accelerator = get_accelerator()
 
     backend = cur_accelerator.communication_backend
 
     # init default process group
-    init_method = f"tcp://[{host}]:{port}"
+    if ":" in host:  # IPv6
+        init_method = f"tcp://[{host}]:{port}"
+    else:  # IPv4
+        init_method = f"tcp://{host}:{port}"
     dist.init_process_group(rank=rank, world_size=world_size, backend=backend, init_method=init_method)
 
     # set cuda device
@@ -68,7 +64,6 @@ def launch(
 
 
 def launch_from_slurm(
-    config: Union[str, Path, Config, Dict],
     host: str,
     port: int,
     backend: str = "nccl",
@@ -95,7 +90,6 @@ def launch_from_slurm(
         )
 
     launch(
-        config=config,
         rank=rank,
         world_size=world_size,
         host=host,
@@ -107,7 +101,6 @@ def launch_from_slurm(
 
 
 def launch_from_openmpi(
-    config: Union[str, Path, Config, Dict],
     host: str,
     port: int,
     backend: str = "nccl",
@@ -135,7 +128,6 @@ def launch_from_openmpi(
         )
 
     launch(
-        config=config,
         local_rank=local_rank,
         rank=rank,
         world_size=world_size,
@@ -147,9 +139,7 @@ def launch_from_openmpi(
     )
 
 
-def launch_from_torch(
-    config: Union[str, Path, Config, Dict], backend: str = "nccl", seed: int = 1024, verbose: bool = True
-):
+def launch_from_torch(backend: str = "nccl", seed: int = 1024, verbose: bool = True):
     """A wrapper for colossalai.launch for torchrun or torch.distributed.launch by reading rank and world size
     from the environment variables set by PyTorch
 
@@ -171,7 +161,6 @@ def launch_from_torch(
         )
 
     launch(
-        config=config,
         local_rank=local_rank,
         rank=rank,
         world_size=world_size,

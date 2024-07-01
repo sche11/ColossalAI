@@ -21,18 +21,21 @@ class _CudaExtension(_CppExtension):
         """
         This function should return a list of nvcc compilation flags for extensions.
         """
+        return ["-DCOLOSSAL_WITH_CUDA"]
 
-    def is_hardware_available(self) -> bool:
+    def is_available(self) -> bool:
         # cuda extension can only be built if cuda is available
         try:
             import torch
 
-            cuda_available = torch.cuda.is_available()
+            # torch.cuda.is_available requires a device to exist, allow building with cuda extension on build nodes without a device
+            # but where cuda is actually available.
+            cuda_available = torch.cuda.is_available() or bool(os.environ.get("FORCE_CUDA", 0))
         except:
             cuda_available = False
         return cuda_available
 
-    def assert_hardware_compatible(self) -> None:
+    def assert_compatible(self) -> None:
         from torch.utils.cpp_extension import CUDA_HOME
 
         if not CUDA_HOME:
@@ -52,6 +55,12 @@ class _CudaExtension(_CppExtension):
             raise RuntimeError("CUDA_HOME is None, please set CUDA_HOME to compile C++/CUDA kernels in ColossalAI.")
         cuda_include = os.path.join(CUDA_HOME, "include")
         return cuda_include
+
+    def include_dirs(self) -> List[str]:
+        """
+        This function should return a list of include files for extensions.
+        """
+        return super().include_dirs() + [self.get_cuda_home_include()]
 
     def build_jit(self) -> None:
         from torch.utils.cpp_extension import CUDA_HOME, load

@@ -12,6 +12,7 @@ TEST_PROMPT_CHATGLM="续写文章：惊蛰一过，春寒加剧。先是料料�
 logger.info(llm(TEST_PROMPT_CHATGLM, max_new_tokens=100), verbose=True)
 
 """
+
 from typing import Any, List, Mapping, Optional
 
 import torch
@@ -33,7 +34,7 @@ class ColossalAPI:
 
     def __init__(self, model_type: str, model_path: str, ckpt_path: str = None) -> None:
         """
-        Configurate model
+        Configure model
         """
         if model_type + model_path + (ckpt_path or "") in ColossalAPI.__instances:
             return
@@ -47,7 +48,7 @@ class ColossalAPI:
             self.model.load_state_dict(state_dict)
         self.model.to(torch.cuda.current_device())
 
-        # Configurate tokenizer
+        # Configure tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
         self.model.eval()
@@ -87,7 +88,7 @@ class ColossalAPI:
 
 class VllmAPI:
     def __init__(self, host: str = "localhost", port: int = 8077) -> None:
-        # Configurate api for model served through web
+        # Configure api for model served through web
         self.host = host
         self.port = port
         self.url = f"http://{self.host}:{self.port}/generate"
@@ -193,4 +194,3 @@ class VllmLLM(LLM):
     def _identifying_params(self) -> Mapping[str, int]:
         """Get the identifying parameters."""
         return {"n": self.n}
-

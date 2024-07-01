@@ -6,8 +6,9 @@ from .extensions import (
     CpuAdamX86Extension,
     FlashAttentionDaoCudaExtension,
     FlashAttentionNpuExtension,
-    FlashAttentionXformersCudaExtension,
+    FlashAttentionSdpaCudaExtension,
     FusedOptimizerCudaExtension,
+    InferenceOpsCudaExtension,
     LayerNormCudaExtension,
     MoeCudaExtension,
     ScaledMaskedSoftmaxCudaExtension,
@@ -21,6 +22,7 @@ __all__ = [
     "LayerNormLoader",
     "MoeLoader",
     "FusedOptimizerLoader",
+    "InferenceOpsLoader",
     "ScaledMaskedSoftmaxLoader",
     "ScaledUpperTriangleMaskedSoftmaxLoader",
 ]
@@ -65,9 +67,9 @@ class KernelLoader:
         else:
             usable_exts = []
             for ext in exts:
-                if ext.is_hardware_available():
+                if ext.is_available():
                     # make sure the machine is compatible during kernel loading
-                    ext.assert_hardware_compatible()
+                    ext.assert_compatible()
                     usable_exts.append(ext)
 
         assert len(usable_exts) != 0, f"No usable kernel found for {self.__class__.__name__} on the current machine."
@@ -97,6 +99,10 @@ class FusedOptimizerLoader(KernelLoader):
     REGISTRY = [FusedOptimizerCudaExtension]
 
 
+class InferenceOpsLoader(KernelLoader):
+    REGISTRY = [InferenceOpsCudaExtension]
+
+
 class ScaledMaskedSoftmaxLoader(KernelLoader):
     REGISTRY = [ScaledMaskedSoftmaxCudaExtension]
 
@@ -106,4 +112,16 @@ class ScaledUpperTriangleMaskedSoftmaxLoader(KernelLoader):
 
 
 class FlashAttentionLoader(KernelLoader):
-    REGISTRY = [FlashAttentionNpuExtension, FlashAttentionDaoCudaExtension, FlashAttentionXformersCudaExtension]
+    REGISTRY = [
+        FlashAttentionNpuExtension,
+        FlashAttentionDaoCudaExtension,
+        FlashAttentionSdpaCudaExtension,
+    ]
+
+
+class FlashAttentionWithCustomMaskLoader(KernelLoader):
+    REGISTRY = [FlashAttentionNpuExtension, FlashAttentionSdpaCudaExtension]
+
+
+class FlashAttentionForFloatAndCustomMaskLoader(KernelLoader):
+    REGISTRY = [FlashAttentionSdpaCudaExtension]

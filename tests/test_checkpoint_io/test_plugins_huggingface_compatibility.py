@@ -61,15 +61,14 @@ def exam_from_pretrained(plugin_type: str, model_name: str, shard=True, size_per
         new_model, new_optimizer, criterion, _, _ = booster.boost(new_model, new_optimizer, criterion)
 
         if plugin_type == "gemini":
-            check_state_dict_equal(model.state_dict(only_rank_0=False), new_model.state_dict(only_rank_0=False), False)
+            check_state_dict_equal(model.state_dict(only_rank_0=False), new_model.state_dict(only_rank_0=False))
         else:
-            check_state_dict_equal(model.unwrap().state_dict(), new_model.unwrap().state_dict(), False)
+            check_state_dict_equal(model.unwrap().state_dict(), new_model.unwrap().state_dict())
         dist.barrier()
 
 
 def run_dist(rank, world_size, port):
-    config = {}
-    colossalai.launch(config=config, rank=rank, world_size=world_size, host="localhost", port=port, backend="nccl")
+    colossalai.launch(rank=rank, world_size=world_size, host="localhost", port=port, backend="nccl")
     exam_from_pretrained()
 
 

@@ -5,13 +5,23 @@ from torch import Tensor
 from torch._utils import _flatten_dense_tensors
 from torch.distributed import ProcessGroup
 
+from colossalai.accelerator.api import get_accelerator
+
 from .base_store import BaseStore
 
 
 class BucketStore(BaseStore):
-    def __init__(self, torch_pg: ProcessGroup):
+    def __init__(
+        self,
+        torch_pg: ProcessGroup,
+        reduce_bucket_size: int,
+    ):
         super().__init__(torch_pg)
+        self.reduce_bucket_size = reduce_bucket_size
+        self.reset_all()
+        self.comm_stream = get_accelerator().Stream()
 
+    def reset_all(self) -> None:
         # init
         self.current_group_id = 0
         self._num_elements_in_bucket = 0

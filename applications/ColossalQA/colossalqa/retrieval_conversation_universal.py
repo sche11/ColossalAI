@@ -1,6 +1,7 @@
 """
 Multilingual retrieval based conversation system
 """
+
 from typing import List
 
 from colossalqa.data_loader.document_loader import DocumentLoader
@@ -36,7 +37,7 @@ class UniversalRetrievalConversation:
         text_splitter_chunk_overlap=10,
     ) -> None:
         """
-        Warpper for multilingual retrieval qa class (Chinese + English)
+        Wrapper for multilingual retrieval qa class (Chinese + English)
         Args:
             embedding_model_path: local or huggingface embedding model
             embedding_model_device:
